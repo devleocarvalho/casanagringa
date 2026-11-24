@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wireframes — CASA NA GRINGA</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wf-banner">
+    <b>CASA NA GRINGA — WIREFRAMES DE PRODUTO (v0.1)</b>
+    <span>Design System: Confiança Atlântica · Sem dependências externas</span>
+    <span class="spacer"></span>
+    <a href="../12-wireframes.md">Documentação (12-wireframes.md)</a>
+  </div>
+
+  <header class="topbar">
+    <div class="container flex between">
+      <div class="logo">Casa na <span>Gringa</span></div>
+      <span class="badge gold">15 Telas Navegáveis · PT / EN / ES</span>
+    </div>
+  </header>
+
+  <main class="section">
+    <div class="container">
+      <span class="eyebrow">Índice Mestre de UX</span>
+      <h1>Mapa de Wireframes do Ecossistema</h1>
+      <p class="muted" style="max-width:720px;">
+        Protótipos estáticos em HTML/CSS de baixa/média fidelidade cobrindo toda a jornada do comprador nas 7 fases, o Cofre Documental auditável, os 8 Agentes de IA com limites, o CRM interno, a Auditoria de Segurança e o Portal do Parceiro.
+      </p>
+
+      <div class="seal mt-3 mb-4">
+        <div class="ico">✓</div>
+        <div>
+          <b>Produto Central: Confiança Verificável.</b> Repare como o selo de transparência, os alertas antifraude (anti-BEC), a clareza de impostos e o histórico auditável aparecem de forma consistente em todas as telas.
+        </div>
+      </div>
+
+      <h2>1. Site Público, Descoberta & Simuladores</h2>
+      <div class="grid g3 mb-4">
+        <a class="card tile" href="01-home.html"><span class="n">01</span><h3>Home & Busca Hero</h3><p class="small muted">Proposta de valor, selo Zero Trust, 7 fases, destinos PT/ES, acesso a simuladores.</p><span class="badge ok tag">Público</span></a>
+        <a class="card tile" href="02-busca-imoveis.html"><span class="n">02</span><h3>Portal de Imóveis + Mapa</h3><p class="small muted">Filtros, Score Due Diligence, Match % do perfil e mapa com pins.</p><span class="badge ok tag">Fase 4</span></a>
+        <a class="card tile" href="03-detalhe-imovel.html"><span class="n">03</span><h3>Detalhe do Imóvel & DD</h3><p class="small muted">Galeria, relatório prévio de riscos, impostos totais e agendamento de visita.</p><span class="badge ok tag">Fase 4–5</span></a>
+        <a class="card tile" href="04-comparador-cidades.html"><span class="n">04</span><h3>Comparador de Cidades</h3><p class="small muted">Lisboa vs. Porto vs. Madrid vs. Valência vs. Málaga lado a lado.</p><span class="badge info tag">Fase 1</span></a>
+        <a class="card tile" href="05-simulador-financeiro.html"><span class="n">05</span><h3>Simulador PT & ES + Crédito</h3><p class="small muted">IMT/Imposto do Selo vs. ITP/IVA/AJD, conversão EUR↔BRL e prestação.</p><span class="badge info tag">Fase 1–2</span></a>
+        <a class="card tile" href="14-planos-assinatura.html"><span class="n">14</span><h3>Planos & Fee Offset</h3><p class="small muted">Explorer, Essencial, Plus e Private com explicação de comissão transparente.</p><span class="badge gold tag">Monetização</span></a>
+      </div>
+
+      <h2>2. Área Logada do Comprador (Confiança & IA)</h2>
+      <div class="grid g3 mb-4">
+        <a class="card tile" href="06-onboarding-perfil.html"><span class="n">06</span><h3>Onboarding Perfil & Consentimento</h3><p class="small muted">Objetivos, orçamento, financiamento e opt-in LGPD/GDPR.</p><span class="badge info tag">Fase 2</span></a>
+        <a class="card tile" href="07-dashboard-cliente.html"><span class="n">07</span><h3>Dashboard & Timeline 7 Fases</h3><p class="small muted">Stepper vivo da compra, pendências, prazos e notificações do Concierge.</p><span class="badge ok tag">Fase 2–7</span></a>
+        <a class="card tile" href="08-cofre-documentos.html"><span class="n">08</span><h3>Cofre Documental Auditável</h3><p class="small muted">Checklist NIF/NIE, versões, compartilhamento expirável e histórico de acesso.</p><span class="badge ok tag">Fase 3 & 5</span></a>
+        <a class="card tile" href="09-chat-agentes-ia.html"><span class="n">09</span><h3>Chat Multiagente (Gemini)</h3><p class="small muted">8 especialistas com citações legais RAG, disclaimer fixo e escalonamento HITL.</p><span class="badge warn tag">IA + HITL</span></a>
+        <a class="card tile" href="13-agendamento-assessoria-premium.html"><span class="n">13</span><h3>Agendamento & Visitas</h3><p class="small muted">Agenda de diagnóstico estratégico e roteiro de visitas presenciais/vídeo.</p><span class="badge gold tag">Assessoria</span></a>
+      </div>
+
+      <h2>3. Operação Interna, Segurança & Ecossistema B2B</h2>
+      <div class="grid g3">
+        <a class="card tile" href="10-crm-lista-leads.html"><span class="n">10</span><h3>CRM Pipeline Kanban</h3><p class="small muted">Funil por etapas, Lead Scoring e SLAs de atendimento.</p><span class="badge dark tag">CRM Interno</span></a>
+        <a class="card tile" href="11-crm-cliente-360.html"><span class="n">11</span><h3>CRM Visão Cliente 360°</h3><p class="small muted">Histórico omnicanal, tarefas, fila HITL e status AML/KYC.</p><span class="badge dark tag">CRM Interno</span></a>
+        <a class="card tile" href="12-painel-auditoria-seguranca.html"><span class="n">12</span><h3>Auditoria Hash-Chain & SIEM</h3><p class="small muted">Trilha imutável, alertas anti-BEC (IBAN) e solicitações DSR LGPD/GDPR.</p><span class="badge danger tag">Zero Trust</span></a>
+        <a class="card tile" href="15-portal-parceiro.html"><span class="n">15</span><h3>Portal do Parceiro Auditado</h3><p class="small muted">Advogados e imobiliárias AMI/AICAT: pareceres DD e docs temporários.</p><span class="badge info tag">Parceiros</span></a>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

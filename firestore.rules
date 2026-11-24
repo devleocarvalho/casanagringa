@@ -1,0 +1,1142 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model — CASA NA GRINGA
+// ===============================================================
+//
+// Zero Trust + RBAC + ABAC Firestore Security Rules (v2).
+// Custom claims expected on request.auth.token:
+//   - role: 'client' | 'client_family_member' | 'advisor' | 'legal_reviewer'
+//           | 'tax_reviewer' | 'broker_partner' | 'bank_partner' | 'notary_partner'
+//           | 'compliance_officer' | 'ops_manager' | 'support_agent'
+//           | 'finance_admin' | 'platform_admin' | 'admin' | 'auditor'
+//
+// Collection: users
+// Document ID: {uid} (matches Firebase Auth UID)
+// Fields:
+//   - uid: string (optional, immutable, must equal {uid})
+//   - email: string (required, valid email, max 254 chars)
+//   - displayName: string (optional, 1..120 chars)
+//   - photoURL: string | null (optional, valid http/https URL, max 500 chars)
+//   - phone: string | null (optional, 5..30 chars)
+//   - role: string (required, immutable for non-admin; must be 'client' on self-create)
+//   - locale: string (optional, 'pt-BR' | 'pt-PT' | 'en-US' | 'es-ES')
+//   - originCountry: string (optional, 2..3 chars)
+//   - kycLevel: string (optional, immutable for self; 'unverified' on self-create)
+//   - mfaEnrolled: bool (optional)
+//   - planCode: string (optional, 'explorer' | 'essencial' | 'plus' | 'private')
+//   - status: string (optional, 'active' | 'suspended' | 'locked' | 'anonymized')
+//   - buyerProfile: map (optional, strictly bounded keys/types)
+//   - consents: map (optional, strictly bounded keys/types)
+//   - createdAt: timestamp (required, immutable, recent on create)
+//   - updatedAt: timestamp (optional)
+//
+// Collection: properties
+// Document ID: {propertyId}
+// Fields:
+//   - canonicalRef: string (optional, 2..40 chars)
+//   - title: string (required, 3..180 chars)
+//   - country: string (required, 'PT' | 'ES')
+//   - regionCode: string (optional, 2..20 chars)
+//   - city: string (required, 2..80 chars)
+//   - neighborhood: string (optional, 1..100 chars)
+//   - propertyType: string (optional, enum)
+//   - conditionType: string (optional, enum)
+//   - priceEur: number (required, > 0, <= 100000000)
+//   - areaSqm: number (optional, > 0, <= 100000)
+//   - bedrooms: int (optional, 0..50)
+//   - bathrooms: int (optional, 0..50)
+//   - energyRating: string (optional, 1..10 chars)
+//   - ddScore: number (optional, 0..100)
+//   - riskLevel: string (optional, 'low' | 'medium' | 'high' | 'critical_blocker')
+//   - yieldPct: number (optional, 0..100)
+//   - status: string (required, 'draft' | 'curating' | 'published' | 'reserved' | 'sold' | 'archived')
+//   - geoPrecision: string (optional, 'exact_verified' | 'neighborhood')
+//   - lat: number (optional, -90..90)
+//   - lng: number (optional, -180..180)
+//   - transparencyFeeNote: string (optional, 0..1000 chars)
+//   - description: string (optional, 0..5000 chars)
+//   - imageUrl: string | null (optional, valid URL or path, max 500 chars)
+//   - images: list (optional, max 20 items)
+//   - translations: map (optional, locale keys only, bounded strings)
+//   - features: list (optional, max 30 items)
+//   - partnerBrokerId: string | null (optional, 1..128 chars)
+//   - createdAt: timestamp (required, immutable, recent on create)
+//   - updatedAt: timestamp (optional)
+//
+// Collection: deals
+// Document ID: {dealId}
+// Fields:
+//   - dealCode: string (optional, 3..40 chars)
+//   - clientUid: string (required, immutable, 1..128 chars)
+//   - propertyId: string | null (optional, 1..128 chars)
+//   - country: string (required, immutable, 'PT' | 'ES')
+//   - regionCode: string (optional, 2..20 chars)
+//   - countryPackVersion: string (optional, 1..30 chars)
+//   - currentPhase: string (required, 7-phase enum)
+//   - status: string (required, 'active' | 'on_hold' | 'completed' | 'cancelled' | 'blocked_compliance')
+//   - advisorUid: string | null (optional, 1..128 chars)
+//   - legalReviewerUid: string | null (optional, 1..128 chars)
+//   - participantUids: list (optional, max 20 items)
+//   - phases: list (optional, max 10 items)
+//   - checklist: list (optional, max 60 items)
+//   - ddApproved: bool (optional)
+//   - ddScore: number (optional, 0..100)
+//   - agreedPriceEur: number | null (optional, 0..100000000)
+//   - financingAmountEur: number | null (optional, 0..100000000)
+//   - targetClosingDate: string | timestamp | null (optional)
+//   - notes: string (optional, 0..2000 chars)
+//   - createdAt: timestamp (required, immutable, recent on create)
+//   - updatedAt: timestamp (required)
+//
+// Collection: vault_documents
+// Document ID: {docId}
+// Fields:
+//   - ownerUid: string (required, immutable, 1..128 chars)
+//   - dealId: string | null (optional, 1..128 chars)
+//   - category: string (required, enum)
+//   - title: string (optional, 1..180 chars)
+//   - fileName: string (required, 1..255 chars)
+//   - mimeType: string (optional, pdf or image/*, max 100 chars)
+//   - sizeBytes: int (optional, 1..26214400)
+//   - version: int (required, 1..10000, non-decreasing on update)
+//   - status: string (required, enum; client cannot self-approve)
+//   - classification: string (optional, 'confidential' | 'restricted')
+//   - storagePath: string (optional, scoped to vault/{ownerUid}/..., max 500 chars)
+//   - sha256: string (optional, 64..128 chars)
+//   - shares: list (optional, max 25 items)
+//   - activeSharedUids: list (optional, max 25 items)
+//   - legalReviewerUid: string | null (optional, 1..128 chars)
+//   - reviewNotes: string | null (optional, 0..2000 chars)
+//   - reviewedBy: string | null (optional, 1..128 chars)
+//   - reviewedAt: timestamp | null (optional)
+//   - expiresOn: string | timestamp | null (optional)
+//   - createdAt: timestamp (required, immutable, recent on create)
+//   - updatedAt: timestamp (required)
+//
+// Collection: audit_logs (Append-only / Immutable)
+// Document ID: {logId}
+// Fields:
+//   - seq: int (required, >= 0)
+//   - actorUid: string (required, must equal request.auth.uid)
+//   - actorRole: string (optional, 1..50 chars)
+//   - ownerUid: string | null (optional, 1..128 chars)
+//   - action: string (required, 2..80 chars)
+//   - resourceType: string (required, 2..60 chars)
+//   - resourceId: string (required, 1..128 chars)
+//   - prevHash: string (required, 16..128 chars)
+//   - entryHash: string (required, 16..128 chars)
+//   - details: string (optional, 0..2000 chars)
+//   - metadata: map (optional, bounded keys)
+//   - ipHash: string (optional, 1..128 chars)
+//   - traceId: string (optional, 1..128 chars)
+//   - createdAt: timestamp (required, recent on create)
+//
+// Collection: crm_leads
+// Document ID: {leadId}
+// Fields:
+//   - userUid: string | null (optional, 1..128 chars)
+//   - name: string (required, 2..120 chars)
+//   - email: string (required, valid email, max 254 chars)
+//   - phone: string | null (optional, 5..30 chars)
+//   - origin: string (required, 2..60 chars)
+//   - stage: string (required, must be 'new_lead' on public create)
+//   - score: int (optional, 0..100)
+//   - countryTarget: string (optional, 'PT' | 'ES' | 'BOTH' | 'OTHER')
+//   - budgetEur: number | null (optional, 0..100000000)
+//   - assignedAdvisor: string | null (optional, 1..128 chars)
+//   - notes: list (optional, max 100 items)
+//   - utm: map (optional, bounded UTM keys)
+//   - simulation: map (optional, bounded simulator keys)
+//   - lostReason: string | null (optional, 0..500 chars)
+//   - createdAt: timestamp (optional, immutable, recent on create)
+//   - updatedAt: timestamp (optional)
+//
+// Collection: ai_conversations
+// Document ID: {convId}
+// Fields:
+//   - userUid: string (required, immutable, 1..128 chars)
+//   - dealId: string | null (optional, 1..128 chars)
+//   - activeAgent: string (required, 9-agent enum)
+//   - locale: string (optional, 'pt-BR' | 'pt-PT' | 'en-US' | 'es-ES')
+//   - title: string (optional, 1..160 chars)
+//   - consentVerified: bool (optional)
+//   - hitlEscalated: bool (optional)
+//   - assignedStaffUid: string | null (optional, 1..128 chars)
+//   - createdAt: timestamp (required, immutable, recent on create)
+//   - updatedAt: timestamp (optional)
+//   - lastMessageAt: timestamp (optional)
+//
+// Subcollection: ai_conversations/{convId}/messages/{msgId}
+// Fields:
+//   - sender: string (required, immutable, 'user' | 'agent' | 'human_advisor' | 'system')
+//   - senderUid: string | null (optional, 1..128 chars)
+//   - agentType: string | null (optional, 9-agent enum)
+//   - text: string (required, 1..16000 chars)
+//   - citations: list (optional, max 20 items)
+//   - disclaimer: bool | string (optional, max 500 chars if string)
+//   - hitlEscalated: bool (optional)
+//   - createdAt: timestamp (required, immutable, recent on create)
+//
+// Collection: concierge_notifications
+// Document ID: {notifId}
+// Fields:
+//   - userUid: string (required, immutable, 1..128 chars)
+//   - dealId: string | null (optional, 1..128 chars)
+//   - type: string (required, 2..50 chars)
+//   - channel: string (optional, 'in_app' | 'email' | 'whatsapp' | 'push')
+//   - priority: string (optional, 'low' | 'normal' | 'high' | 'critical')
+//   - title: string (required, 1..160 chars)
+//   - message: string (required, 1..1000 chars)
+//   - actionUrl: string | null (optional, 1..300 chars)
+//   - requiresAck: bool (optional)
+//   - read: bool (required)
+//   - readAt: timestamp | null (optional)
+//   - createdAt: timestamp (required, immutable, recent on create)
+//
+// Collection: verified_payment_instructions (Anti-BEC)
+// Document ID: {instId}
+// Fields:
+//   - clientUid: string (required, immutable, 1..128 chars)
+//   - dealId: string (required, immutable, 1..128 chars)
+//   - beneficiaryName: string (required, immutable, 2..150 chars)
+//   - beneficiaryRole: string (required, enum)
+//   - ibanLast4: string (required, immutable, 4 uppercase alphanumeric chars)
+//   - ibanMasked: string (optional, immutable, 4..40 chars)
+//   - bicSwift: string (required, immutable, 8..11 uppercase alphanumeric chars)
+//   - bankName: string (optional, 2..120 chars)
+//   - expectedAmountEur: number (required, immutable, > 0, <= 100000000)
+//   - purposeCode: string (required, enum)
+//   - verificationCode: string (optional, 4..20 chars)
+//   - verifiedBy1: string (required, 1..128 chars)
+//   - verifiedBy2: string | null (optional, 1..128 chars, != verifiedBy1)
+//   - clientOobConfirmed: bool (optional)
+//   - hmacSignature: string (required, 16..256 chars)
+//   - status: string (required, 'pending_second_approval' | 'active' | 'used' | 'superseded' | 'frozen_alert')
+//   - createdAt: timestamp (required, immutable, recent on create)
+//   - updatedAt: timestamp (optional)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user owns the resource (for user-owned documents)
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if user has a specific RBAC role claim
+    function hasRole(role) {
+      return isAuthenticated()
+        && ('role' in request.auth.token)
+        && request.auth.token.role is string
+        && request.auth.token.role == role;
+    }
+
+    // Check if user holds any of the allowed RBAC role claims
+    function hasAnyRole(roles) {
+      return isAuthenticated()
+        && ('role' in request.auth.token)
+        && request.auth.token.role is string
+        && request.auth.token.role in roles;
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function isStaff() {
+      return hasAnyRole(['advisor', 'legal_reviewer', 'compliance_officer', 'ops_manager', 'admin']);
+    }
+
+    // Verify UID hasn't been tampered with on create
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == request.auth.uid;
+    }
+
+    // Ensure uid field is not modified on update
+    function uidNotModified() {
+      return !('uid' in request.resource.data) ||
+        (('uid' in resource.data) && request.resource.data.uid == resource.data.uid);
+    }
+
+    // Validate required fields exist
+    function hasRequiredFields(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+
+    // Validate that the document contains only the allowed fields
+    function hasOnlyAllowedFields(data, fields) {
+      return data.keys().hasOnly(fields);
+    }
+
+    // Validate that immutable fields were not modified on update
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // Validate string length
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    // Validate optional string (if present, must be string within length)
+    function isValidOptionalString(data, field, minLen, maxLen) {
+      return !(field in data) || isValidString(data[field], minLen, maxLen);
+    }
+
+    // Validate optional or nullable string
+    function isValidNullableString(data, field, minLen, maxLen) {
+      return !(field in data) || data[field] == null || isValidString(data[field], minLen, maxLen);
+    }
+
+    // Validate optional bool
+    function isValidOptionalBool(data, field) {
+      return !(field in data) || data[field] is bool;
+    }
+
+    // Validate optional timestamp
+    function isValidOptionalTimestamp(data, field) {
+      return !(field in data) || data[field] == null || data[field] is timestamp;
+    }
+
+    // Validate optional bounded number
+    function isValidOptionalNumber(data, field, minVal, maxVal) {
+      return !(field in data) || data[field] == null ||
+        (data[field] is number && data[field] >= minVal && data[field] <= maxVal);
+    }
+
+    // Validate optional bounded integer
+    function isValidOptionalInt(data, field, minVal, maxVal) {
+      return !(field in data) || data[field] == null ||
+        (data[field] is int && data[field] >= minVal && data[field] <= maxVal);
+    }
+
+    // Validate URL format (must start with https:// or http://)
+    function isValidUrl(url) {
+      return url is string &&
+        url.size() <= 500 &&
+        (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    // Validate property media path or URL
+    function isValidMediaPath(url) {
+      return url is string &&
+        url.size() >= 1 &&
+        url.size() <= 500 &&
+        (url.matches("^https://.*") ||
+         url.matches("^http://.*") ||
+         url.matches("^properties/.*") ||
+         url.matches("^/.*"));
+    }
+
+    // Validate internal or HTTPS action URL
+    function isValidActionUrl(url) {
+      return url is string &&
+        url.size() >= 1 &&
+        url.size() <= 300 &&
+        (url.matches("^https://.*") || url.matches("^/.*"));
+    }
+
+    // Validate email format
+    function isValidEmail(email) {
+      return email is string &&
+        email.size() >= 5 &&
+        email.size() <= 254 &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // Validate that a storage path is correctly scoped to the vault owner
+    function isScopedVaultPath(path, ownerUid) {
+      return path is string &&
+        path.size() <= 500 &&
+        path.matches("^vault/" + ownerUid + "/.*");
+    }
+
+    // Validate that a list enforces size limits
+    function isValidList(listVal, maxSize) {
+      return listVal is list && listVal.size() <= maxSize;
+    }
+
+    // Validate optional list
+    function isValidOptionalList(data, field, maxSize) {
+      return !(field in data) || isValidList(data[field], maxSize);
+    }
+
+    // Validate timestamp is recent (tolerates slight client clock skew; prevents spoofing)
+    function isRecent(time) {
+      return time is timestamp &&
+        time > request.time - duration.value(5, 'm') &&
+        time <= request.time + duration.value(1, 'm');
+    }
+
+    // Check email_verified or basic security claim when available, while remaining compatible
+    // with local emulators / rules-unit-testing custom contexts (blocks anonymous sessions)
+    function hasVaultSecurityClaim() {
+      return isAuthenticated()
+        && (!('firebase' in request.auth.token)
+            || !('sign_in_provider' in request.auth.token.firebase)
+            || request.auth.token.firebase.sign_in_provider != 'anonymous')
+        && (
+          !('email_verified' in request.auth.token)
+          || request.auth.token.email_verified == true
+          || ('role' in request.auth.token)
+          || ('mfaVerified' in request.auth.token)
+          || (('firebase' in request.auth.token)
+              && ('sign_in_second_factor' in request.auth.token.firebase))
+          || (('firebase' in request.auth.token)
+              && ('sign_in_provider' in request.auth.token.firebase)
+              && request.auth.token.firebase.sign_in_provider == 'custom')
+        );
+    }
+
+    // ===============================================================
+    // Domain Validators (Used in BOTH create and update)
+    // ===============================================================
+
+    function isValidBuyerProfile(profile) {
+      return profile is map
+        && hasOnlyAllowedFields(profile, [
+          'segmentCode', 'targetCountries', 'targetCities', 'purpose',
+          'budgetMinEur', 'budgetMaxEur', 'equityAvailableEur', 'needsMortgage',
+          'targetHorizonMo', 'residencyGoal', 'taxResidence', 'notes'
+        ])
+        && (!('segmentCode' in profile) || profile.segmentCode in [
+          'S1_BR_IN_BR', 'S2_BR_IN_PT', 'S3_INV_ES', 'S4_PT_ES',
+          'S5_DIASPORA', 'S6_PALOP', 'EXPLORER'
+        ])
+        && isValidOptionalList(profile, 'targetCountries', 10)
+        && isValidOptionalList(profile, 'targetCities', 20)
+        && (!('purpose' in profile) || profile.purpose in ['residence', 'investment', 'vacation', 'hybrid'])
+        && isValidOptionalNumber(profile, 'budgetMinEur', 0, 100000000)
+        && isValidOptionalNumber(profile, 'budgetMaxEur', 0, 100000000)
+        && isValidOptionalNumber(profile, 'equityAvailableEur', 0, 100000000)
+        && isValidOptionalBool(profile, 'needsMortgage')
+        && isValidOptionalInt(profile, 'targetHorizonMo', 1, 120)
+        && isValidNullableString(profile, 'residencyGoal', 0, 120)
+        && isValidOptionalString(profile, 'taxResidence', 2, 3)
+        && isValidNullableString(profile, 'notes', 0, 1000);
+    }
+
+    function isValidConsents(consents) {
+      return consents is map
+        && hasOnlyAllowedFields(consents, [
+          'termsOfService', 'privacyPolicy', 'marketingEmail',
+          'marketingWhatsapp', 'aiProcessing', 'partnerDataShare',
+          'cookiesAnalytics', 'policyVersion', 'updatedAt'
+        ])
+        && isValidOptionalBool(consents, 'termsOfService')
+        && isValidOptionalBool(consents, 'privacyPolicy')
+        && isValidOptionalBool(consents, 'marketingEmail')
+        && isValidOptionalBool(consents, 'marketingWhatsapp')
+        && isValidOptionalBool(consents, 'aiProcessing')
+        && isValidOptionalBool(consents, 'partnerDataShare')
+        && isValidOptionalBool(consents, 'cookiesAnalytics')
+        && isValidOptionalString(consents, 'policyVersion', 1, 30)
+        && isValidOptionalTimestamp(consents, 'updatedAt');
+    }
+
+    function isValidUser(data) {
+      return hasRequiredFields(data, ['email', 'role', 'createdAt'])
+        && hasOnlyAllowedFields(data, [
+          'uid', 'email', 'displayName', 'photoURL', 'phone', 'role',
+          'locale', 'originCountry', 'kycLevel', 'mfaEnrolled', 'planCode',
+          'status', 'buyerProfile', 'consents', 'createdAt', 'updatedAt'
+        ])
+        && isValidOptionalString(data, 'uid', 1, 128)
+        && isValidEmail(data.email)
+        && isValidOptionalString(data, 'displayName', 1, 120)
+        && (!('photoURL' in data) || data.photoURL == null || isValidUrl(data.photoURL))
+        && isValidNullableString(data, 'phone', 5, 30)
+        && data.role in [
+          'client', 'client_family_member', 'advisor', 'legal_reviewer',
+          'tax_reviewer', 'broker_partner', 'bank_partner', 'notary_partner',
+          'compliance_officer', 'ops_manager', 'support_agent', 'finance_admin',
+          'platform_admin', 'admin', 'auditor'
+        ]
+        && (!('locale' in data) || data.locale in ['pt-BR', 'pt-PT', 'en-US', 'es-ES'])
+        && isValidOptionalString(data, 'originCountry', 2, 3)
+        && (!('kycLevel' in data) || data.kycLevel in [
+          'unverified', 'pending', 'verified_l2', 'verified_edd', 'rejected', 'expired'
+        ])
+        && isValidOptionalBool(data, 'mfaEnrolled')
+        && (!('planCode' in data) || data.planCode in ['explorer', 'essencial', 'plus', 'private'])
+        && (!('status' in data) || data.status in ['active', 'suspended', 'locked', 'anonymized'])
+        && (!('buyerProfile' in data) || isValidBuyerProfile(data.buyerProfile))
+        && (!('consents' in data) || isValidConsents(data.consents))
+        && data.createdAt is timestamp
+        && isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidTranslationEntry(entry) {
+      return entry is map
+        && hasOnlyAllowedFields(entry, ['title', 'description', 'neighborhoodNotes'])
+        && isValidOptionalString(entry, 'title', 1, 180)
+        && isValidOptionalString(entry, 'description', 0, 5000)
+        && isValidOptionalString(entry, 'neighborhoodNotes', 0, 2000);
+    }
+
+    function isValidPropertyTranslations(translations) {
+      return translations is map
+        && hasOnlyAllowedFields(translations, ['pt-BR', 'pt-PT', 'en-US', 'es-ES', 'pt', 'en', 'es'])
+        && (!('pt-BR' in translations) || isValidTranslationEntry(translations['pt-BR']))
+        && (!('pt-PT' in translations) || isValidTranslationEntry(translations['pt-PT']))
+        && (!('en-US' in translations) || isValidTranslationEntry(translations['en-US']))
+        && (!('es-ES' in translations) || isValidTranslationEntry(translations['es-ES']))
+        && (!('pt' in translations) || isValidTranslationEntry(translations['pt']))
+        && (!('en' in translations) || isValidTranslationEntry(translations['en']))
+        && (!('es' in translations) || isValidTranslationEntry(translations['es']));
+    }
+
+    function isValidProperty(data) {
+      return hasRequiredFields(data, ['title', 'country', 'city', 'priceEur', 'status', 'createdAt'])
+        && hasOnlyAllowedFields(data, [
+          'canonicalRef', 'title', 'country', 'regionCode', 'city', 'neighborhood',
+          'propertyType', 'conditionType', 'priceEur', 'areaSqm', 'bedrooms',
+          'bathrooms', 'energyRating', 'ddScore', 'riskLevel', 'yieldPct',
+          'status', 'geoPrecision', 'lat', 'lng', 'transparencyFeeNote',
+          'description', 'imageUrl', 'images', 'translations', 'features',
+          'partnerBrokerId', 'createdAt', 'updatedAt'
+        ])
+        && isValidOptionalString(data, 'canonicalRef', 2, 40)
+        && isValidString(data.title, 3, 180)
+        && data.country in ['PT', 'ES']
+        && isValidOptionalString(data, 'regionCode', 2, 20)
+        && isValidString(data.city, 2, 80)
+        && isValidOptionalString(data, 'neighborhood', 1, 100)
+        && (!('propertyType' in data) || data.propertyType in [
+          'apartment', 'house', 'penthouse', 'townhouse', 'commercial', 'land'
+        ])
+        && (!('conditionType' in data) || data.conditionType in [
+          'used', 'new_build', 'off_plan', 'renovated'
+        ])
+        && data.priceEur is number && data.priceEur > 0 && data.priceEur <= 100000000
+        && isValidOptionalNumber(data, 'areaSqm', 1, 100000)
+        && isValidOptionalInt(data, 'bedrooms', 0, 50)
+        && isValidOptionalInt(data, 'bathrooms', 0, 50)
+        && isValidOptionalString(data, 'energyRating', 1, 10)
+        && isValidOptionalNumber(data, 'ddScore', 0, 100)
+        && (!('riskLevel' in data) || data.riskLevel in ['low', 'medium', 'high', 'critical_blocker'])
+        && isValidOptionalNumber(data, 'yieldPct', 0, 100)
+        && data.status in ['draft', 'curating', 'published', 'reserved', 'sold', 'archived']
+        && (!('geoPrecision' in data) || data.geoPrecision in ['exact_verified', 'neighborhood'])
+        && isValidOptionalNumber(data, 'lat', -90, 90)
+        && isValidOptionalNumber(data, 'lng', -180, 180)
+        && isValidOptionalString(data, 'transparencyFeeNote', 0, 1000)
+        && isValidOptionalString(data, 'description', 0, 5000)
+        && (!('imageUrl' in data) || data.imageUrl == null || isValidMediaPath(data.imageUrl))
+        && isValidOptionalList(data, 'images', 20)
+        && (!('translations' in data) || isValidPropertyTranslations(data.translations))
+        && isValidOptionalList(data, 'features', 30)
+        && isValidNullableString(data, 'partnerBrokerId', 1, 128)
+        && data.createdAt is timestamp
+        && isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidDeal(data) {
+      return hasRequiredFields(data, ['clientUid', 'country', 'currentPhase', 'status', 'createdAt', 'updatedAt'])
+        && hasOnlyAllowedFields(data, [
+          'dealCode', 'clientUid', 'propertyId', 'country', 'regionCode',
+          'countryPackVersion', 'currentPhase', 'status', 'advisorUid',
+          'legalReviewerUid', 'participantUids', 'phases', 'checklist',
+          'ddApproved', 'ddScore', 'agreedPriceEur', 'financingAmountEur',
+          'targetClosingDate', 'notes', 'createdAt', 'updatedAt'
+        ])
+        && isValidOptionalString(data, 'dealCode', 3, 40)
+        && isValidString(data.clientUid, 1, 128)
+        && isValidNullableString(data, 'propertyId', 1, 128)
+        && data.country in ['PT', 'ES']
+        && isValidOptionalString(data, 'regionCode', 2, 20)
+        && isValidOptionalString(data, 'countryPackVersion', 1, 30)
+        && data.currentPhase in [
+          'discovery', 'planning', 'documentation', 'search_selection',
+          'due_diligence', 'purchase', 'post_sale'
+        ]
+        && data.status in ['active', 'on_hold', 'completed', 'cancelled', 'blocked_compliance']
+        && isValidNullableString(data, 'advisorUid', 1, 128)
+        && isValidNullableString(data, 'legalReviewerUid', 1, 128)
+        && isValidOptionalList(data, 'participantUids', 20)
+        && isValidOptionalList(data, 'phases', 10)
+        && isValidOptionalList(data, 'checklist', 60)
+        && isValidOptionalBool(data, 'ddApproved')
+        && isValidOptionalNumber(data, 'ddScore', 0, 100)
+        && isValidOptionalNumber(data, 'agreedPriceEur', 0, 100000000)
+        && isValidOptionalNumber(data, 'financingAmountEur', 0, 100000000)
+        && (!('targetClosingDate' in data) || data.targetClosingDate == null ||
+            isValidString(data.targetClosingDate, 4, 30) || data.targetClosingDate is timestamp)
+        && isValidOptionalString(data, 'notes', 0, 2000)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidVaultDocument(data) {
+      return hasRequiredFields(data, [
+          'ownerUid', 'category', 'fileName', 'version', 'status', 'createdAt', 'updatedAt'
+        ])
+        && hasOnlyAllowedFields(data, [
+          'ownerUid', 'dealId', 'category', 'title', 'fileName', 'mimeType',
+          'sizeBytes', 'version', 'status', 'classification', 'storagePath',
+          'sha256', 'shares', 'activeSharedUids', 'legalReviewerUid',
+          'reviewNotes', 'reviewedBy', 'reviewedAt', 'expiresOn',
+          'createdAt', 'updatedAt'
+        ])
+        && isValidString(data.ownerUid, 1, 128)
+        && isValidNullableString(data, 'dealId', 1, 128)
+        && data.category in [
+          'passport', 'nif_nie', 'proof_address', 'income_tax', 'source_of_funds',
+          'bank_statement', 'power_of_attorney', 'apostille_translation',
+          'property_registry', 'caderneta_catastro', 'energy_cert',
+          'cpcv_arras', 'deed_escritura', 'other'
+        ]
+        && isValidOptionalString(data, 'title', 1, 180)
+        && isValidString(data.fileName, 1, 255)
+        && (!('mimeType' in data) || (
+          isValidString(data.mimeType, 3, 100) &&
+          data.mimeType.matches("^application/pdf$|^image/.*")
+        ))
+        && isValidOptionalInt(data, 'sizeBytes', 1, 26214400)
+        && data.version is int && data.version >= 1 && data.version <= 10000
+        && data.status in [
+          'pending_upload', 'uploaded', 'ai_screening', 'awaiting_human_review',
+          'approved', 'rejected', 'expired', 'revoked'
+        ]
+        && (!('classification' in data) || data.classification in ['confidential', 'restricted'])
+        && (!('storagePath' in data) || isScopedVaultPath(data.storagePath, data.ownerUid))
+        && isValidOptionalString(data, 'sha256', 16, 128)
+        && isValidOptionalList(data, 'shares', 25)
+        && isValidOptionalList(data, 'activeSharedUids', 25)
+        && isValidNullableString(data, 'legalReviewerUid', 1, 128)
+        && isValidNullableString(data, 'reviewNotes', 0, 2000)
+        && isValidNullableString(data, 'reviewedBy', 1, 128)
+        && isValidOptionalTimestamp(data, 'reviewedAt')
+        && (!('expiresOn' in data) || data.expiresOn == null ||
+            isValidString(data.expiresOn, 4, 30) || data.expiresOn is timestamp)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAuditMetadata(meta) {
+      return meta is map
+        && hasOnlyAllowedFields(meta, [
+          'summary', 'version', 'targetUid', 'watermarkId',
+          'justification', 'before', 'after'
+        ])
+        && isValidOptionalString(meta, 'summary', 0, 500)
+        && isValidOptionalInt(meta, 'version', 1, 10000)
+        && isValidOptionalString(meta, 'targetUid', 1, 128)
+        && isValidOptionalString(meta, 'watermarkId', 1, 128)
+        && isValidOptionalString(meta, 'justification', 0, 500)
+        && isValidOptionalString(meta, 'before', 0, 500)
+        && isValidOptionalString(meta, 'after', 0, 500);
+    }
+
+    function isValidAuditLog(data) {
+      return hasRequiredFields(data, [
+          'seq', 'actorUid', 'action', 'resourceType',
+          'resourceId', 'prevHash', 'entryHash', 'createdAt'
+        ])
+        && hasOnlyAllowedFields(data, [
+          'seq', 'actorUid', 'actorRole', 'ownerUid', 'action',
+          'resourceType', 'resourceId', 'prevHash', 'entryHash',
+          'details', 'metadata', 'ipHash', 'traceId', 'createdAt'
+        ])
+        && data.seq is int && data.seq >= 0
+        && isValidString(data.actorUid, 1, 128)
+        && isValidOptionalString(data, 'actorRole', 1, 50)
+        && isValidNullableString(data, 'ownerUid', 1, 128)
+        && isValidString(data.action, 2, 80)
+        && isValidString(data.resourceType, 2, 60)
+        && isValidString(data.resourceId, 1, 128)
+        && isValidString(data.prevHash, 16, 128)
+        && isValidString(data.entryHash, 16, 128)
+        && isValidOptionalString(data, 'details', 0, 2000)
+        && (!('metadata' in data) || isValidAuditMetadata(data.metadata))
+        && isValidOptionalString(data, 'ipHash', 1, 128)
+        && isValidOptionalString(data, 'traceId', 1, 128)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidUtmMap(utm) {
+      return utm is map
+        && hasOnlyAllowedFields(utm, ['source', 'medium', 'campaign', 'term', 'content'])
+        && isValidOptionalString(utm, 'source', 0, 100)
+        && isValidOptionalString(utm, 'medium', 0, 100)
+        && isValidOptionalString(utm, 'campaign', 0, 100)
+        && isValidOptionalString(utm, 'term', 0, 100)
+        && isValidOptionalString(utm, 'content', 0, 100);
+    }
+
+    function isValidSimulationMap(sim) {
+      return sim is map
+        && hasOnlyAllowedFields(sim, [
+          'country', 'regionCode', 'propertyPriceEur', 'purpose',
+          'conditionType', 'needsMortgage', 'totalEstimatedCostEur',
+          'taxesEur', 'downPaymentEur', 'monthlyPaymentEur', 'currency'
+        ])
+        && (!('country' in sim) || sim.country in ['PT', 'ES'])
+        && isValidOptionalString(sim, 'regionCode', 2, 20)
+        && isValidOptionalNumber(sim, 'propertyPriceEur', 0, 100000000)
+        && (!('purpose' in sim) || sim.purpose in ['residence', 'investment', 'vacation', 'hybrid'])
+        && (!('conditionType' in sim) || sim.conditionType in ['used', 'new_build', 'off_plan', 'renovated'])
+        && isValidOptionalBool(sim, 'needsMortgage')
+        && isValidOptionalNumber(sim, 'totalEstimatedCostEur', 0, 200000000)
+        && isValidOptionalNumber(sim, 'taxesEur', 0, 100000000)
+        && isValidOptionalNumber(sim, 'downPaymentEur', 0, 100000000)
+        && isValidOptionalNumber(sim, 'monthlyPaymentEur', 0, 10000000)
+        && isValidOptionalString(sim, 'currency', 3, 3);
+    }
+
+    function isValidCrmLead(data) {
+      return hasRequiredFields(data, ['name', 'email', 'origin', 'stage'])
+        && hasOnlyAllowedFields(data, [
+          'userUid', 'name', 'email', 'phone', 'origin', 'stage', 'score',
+          'countryTarget', 'budgetEur', 'assignedAdvisor', 'notes', 'utm',
+          'simulation', 'lostReason', 'createdAt', 'updatedAt'
+        ])
+        && isValidNullableString(data, 'userUid', 1, 128)
+        && isValidString(data.name, 2, 120)
+        && isValidEmail(data.email)
+        && isValidNullableString(data, 'phone', 5, 30)
+        && isValidString(data.origin, 2, 60)
+        && data.stage in [
+          'new_lead', 'qualified_mql', 'diagnostic_scheduled',
+          'sql_active_plan', 'property_selection', 'under_dd', 'closed_won', 'lost'
+        ]
+        && isValidOptionalInt(data, 'score', 0, 100)
+        && (!('countryTarget' in data) || data.countryTarget in ['PT', 'ES', 'BOTH', 'OTHER'])
+        && isValidOptionalNumber(data, 'budgetEur', 0, 100000000)
+        && isValidNullableString(data, 'assignedAdvisor', 1, 128)
+        && isValidOptionalList(data, 'notes', 100)
+        && (!('utm' in data) || isValidUtmMap(data.utm))
+        && (!('simulation' in data) || isValidSimulationMap(data.simulation))
+        && isValidNullableString(data, 'lostReason', 0, 500)
+        && isValidOptionalTimestamp(data, 'createdAt')
+        && isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidAiConversation(data) {
+      return hasRequiredFields(data, ['userUid', 'activeAgent', 'createdAt'])
+        && hasOnlyAllowedFields(data, [
+          'userUid', 'dealId', 'activeAgent', 'locale', 'title',
+          'consentVerified', 'hitlEscalated', 'assignedStaffUid',
+          'createdAt', 'updatedAt', 'lastMessageAt'
+        ])
+        && isValidString(data.userUid, 1, 128)
+        && isValidNullableString(data, 'dealId', 1, 128)
+        && data.activeAgent in [
+          'orchestrator', 'real_estate', 'financial', 'legal', 'tax',
+          'relocation', 'concierge', 'compliance', 'due_diligence'
+        ]
+        && (!('locale' in data) || data.locale in ['pt-BR', 'pt-PT', 'en-US', 'es-ES'])
+        && isValidOptionalString(data, 'title', 1, 160)
+        && isValidOptionalBool(data, 'consentVerified')
+        && isValidOptionalBool(data, 'hitlEscalated')
+        && isValidNullableString(data, 'assignedStaffUid', 1, 128)
+        && data.createdAt is timestamp
+        && isValidOptionalTimestamp(data, 'updatedAt')
+        && isValidOptionalTimestamp(data, 'lastMessageAt');
+    }
+
+    function isValidAiMessage(data) {
+      return hasRequiredFields(data, ['sender', 'text', 'createdAt'])
+        && hasOnlyAllowedFields(data, [
+          'sender', 'senderUid', 'agentType', 'text',
+          'citations', 'disclaimer', 'hitlEscalated', 'createdAt'
+        ])
+        && data.sender in ['user', 'agent', 'human_advisor', 'system']
+        && isValidNullableString(data, 'senderUid', 1, 128)
+        && (!('agentType' in data) || data.agentType == null || data.agentType in [
+          'orchestrator', 'real_estate', 'financial', 'legal', 'tax',
+          'relocation', 'concierge', 'compliance', 'due_diligence'
+        ])
+        && isValidString(data.text, 1, 16000)
+        && isValidOptionalList(data, 'citations', 20)
+        && (!('disclaimer' in data) || data.disclaimer is bool || isValidString(data.disclaimer, 1, 500))
+        && isValidOptionalBool(data, 'hitlEscalated')
+        && data.createdAt is timestamp;
+    }
+
+    function isValidConciergeNotification(data) {
+      return hasRequiredFields(data, ['userUid', 'type', 'title', 'message', 'read', 'createdAt'])
+        && hasOnlyAllowedFields(data, [
+          'userUid', 'dealId', 'type', 'channel', 'priority',
+          'title', 'message', 'actionUrl', 'requiresAck', 'read', 'readAt', 'createdAt'
+        ])
+        && isValidString(data.userUid, 1, 128)
+        && isValidNullableString(data, 'dealId', 1, 128)
+        && isValidString(data.type, 2, 50)
+        && (!('channel' in data) || data.channel in ['in_app', 'email', 'whatsapp', 'push'])
+        && (!('priority' in data) || data.priority in ['low', 'normal', 'high', 'critical'])
+        && isValidString(data.title, 1, 160)
+        && isValidString(data.message, 1, 1000)
+        && (!('actionUrl' in data) || data.actionUrl == null || isValidActionUrl(data.actionUrl))
+        && isValidOptionalBool(data, 'requiresAck')
+        && data.read is bool
+        && isValidOptionalTimestamp(data, 'readAt')
+        && data.createdAt is timestamp;
+    }
+
+    function isValidPaymentInstruction(data) {
+      return hasRequiredFields(data, [
+          'clientUid', 'dealId', 'beneficiaryName', 'beneficiaryRole',
+          'ibanLast4', 'bicSwift', 'expectedAmountEur', 'purposeCode',
+          'verifiedBy1', 'hmacSignature', 'status', 'createdAt'
+        ])
+        && hasOnlyAllowedFields(data, [
+          'clientUid', 'dealId', 'beneficiaryName', 'beneficiaryRole',
+          'ibanLast4', 'ibanMasked', 'bicSwift', 'bankName',
+          'expectedAmountEur', 'purposeCode', 'verificationCode',
+          'verifiedBy1', 'verifiedBy2', 'clientOobConfirmed',
+          'hmacSignature', 'status', 'createdAt', 'updatedAt'
+        ])
+        && isValidString(data.clientUid, 1, 128)
+        && isValidString(data.dealId, 1, 128)
+        && isValidString(data.beneficiaryName, 2, 150)
+        && data.beneficiaryRole in ['lawyer_escrow', 'notary_account', 'seller_verified', 'tax_authority']
+        && data.ibanLast4 is string && data.ibanLast4.matches("^[A-Z0-9]{4}$")
+        && isValidOptionalString(data, 'ibanMasked', 4, 40)
+        && data.bicSwift is string && data.bicSwift.matches("^[A-Z0-9]{8,11}$")
+        && isValidOptionalString(data, 'bankName', 2, 120)
+        && data.expectedAmountEur is number && data.expectedAmountEur > 0 && data.expectedAmountEur <= 100000000
+        && data.purposeCode in ['earnest_cpcv', 'closing_balance', 'tax_imt_itp', 'legal_escrow', 'other']
+        && isValidOptionalString(data, 'verificationCode', 4, 20)
+        && isValidString(data.verifiedBy1, 1, 128)
+        && (!('verifiedBy2' in data) || data.verifiedBy2 == null ||
+            (isValidString(data.verifiedBy2, 1, 128) && data.verifiedBy2 != data.verifiedBy1))
+        && isValidOptionalBool(data, 'clientOobConfirmed')
+        && isValidString(data.hmacSignature, 16, 256)
+        && data.status in ['pending_second_approval', 'active', 'used', 'superseded', 'frozen_alert']
+        && data.createdAt is timestamp
+        && isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // 1. users/{uid}
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isStaff();
+
+      allow create: if isAuthenticated()
+        && isValidUser(request.resource.data)
+        && uidUnchanged()
+        && (!('uid' in request.resource.data) || request.resource.data.uid == uid)
+        && isRecent(request.resource.data.createdAt)
+        && (
+          (isOwner(uid)
+            && request.resource.data.role == 'client'
+            && (!('kycLevel' in request.resource.data) || request.resource.data.kycLevel == 'unverified')
+            && (!('status' in request.resource.data) || request.resource.data.status == 'active'))
+          || isAdmin()
+        );
+
+      allow update: if isAuthenticated()
+        && isValidUser(request.resource.data)
+        && uidNotModified()
+        && (
+          (isOwner(uid)
+            && areImmutableFieldsUnchanged(['role', 'kycLevel', 'createdAt', 'uid'])
+            && request.resource.data.role == resource.data.role)
+          || (hasRole('compliance_officer')
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['kycLevel', 'updatedAt']))
+          || (isAdmin()
+              && areImmutableFieldsUnchanged(['createdAt', 'uid']))
+        );
+
+      // DSR deletion handled exclusively via server/Admin SDK workflow
+      allow delete: if false;
+    }
+
+    // 2. properties/{propertyId}
+    match /properties/{propertyId} {
+      // Explicit public read ONLY for published properties; staff can view all statuses
+      allow read: if resource.data.status == 'published' || isStaff();
+
+      allow create: if hasAnyRole(['admin', 'ops_manager'])
+        && isValidProperty(request.resource.data)
+        && isRecent(request.resource.data.createdAt);
+
+      allow update: if hasAnyRole(['admin', 'ops_manager'])
+        && isValidProperty(request.resource.data)
+        && areImmutableFieldsUnchanged(['createdAt']);
+
+      allow delete: if hasAnyRole(['admin', 'ops_manager']);
+    }
+
+    // 3. deals/{dealId}
+    match /deals/{dealId} {
+      function isDealParticipant() {
+        return isAuthenticated() && (
+          resource.data.clientUid == request.auth.uid ||
+          (('participantUids' in resource.data)
+            && resource.data.participantUids is list
+            && request.auth.uid in resource.data.participantUids)
+        );
+      }
+
+      function isAssignedDealStaff() {
+        return (hasRole('advisor') && ('advisorUid' in resource.data) && resource.data.advisorUid == request.auth.uid)
+          || (hasRole('legal_reviewer') && ('legalReviewerUid' in resource.data) && resource.data.legalReviewerUid == request.auth.uid);
+      }
+
+      function canClientTransitionDealPhase() {
+        return !(request.resource.data.currentPhase in ['purchase', 'post_sale'])
+          || (('ddApproved' in resource.data) && resource.data.ddApproved == true);
+      }
+
+      allow read: if isDealParticipant() || isStaff();
+
+      allow create: if isAuthenticated()
+        && isValidDeal(request.resource.data)
+        && isRecent(request.resource.data.createdAt)
+        && (
+          (request.resource.data.clientUid == request.auth.uid
+            && request.resource.data.status == 'active'
+            && request.resource.data.currentPhase in ['discovery', 'planning', 'documentation']
+            && (!('ddApproved' in request.resource.data) || request.resource.data.ddApproved == false)
+            && (!('legalReviewerUid' in request.resource.data) || request.resource.data.legalReviewerUid == null))
+          || hasAnyRole(['advisor', 'ops_manager', 'admin'])
+        );
+
+      allow update: if isAuthenticated()
+        && isValidDeal(request.resource.data)
+        && areImmutableFieldsUnchanged(['clientUid', 'country', 'createdAt'])
+        && (
+          isAdmin()
+          || (isAssignedDealStaff()
+              && areImmutableFieldsUnchanged(['dealCode', 'advisorUid', 'legalReviewerUid']))
+          || (resource.data.clientUid == request.auth.uid
+              && areImmutableFieldsUnchanged(['dealCode', 'advisorUid', 'legalReviewerUid', 'ddApproved', 'ddScore'])
+              && request.resource.data.status != 'blocked_compliance'
+              && canClientTransitionDealPhase())
+          || (isDealParticipant()
+              && resource.data.clientUid != request.auth.uid
+              && areImmutableFieldsUnchanged([
+                'dealCode', 'advisorUid', 'legalReviewerUid', 'participantUids', 'ddApproved', 'ddScore'
+              ])
+              && request.resource.data.status != 'blocked_compliance'
+              && canClientTransitionDealPhase())
+        );
+
+      // Deals are archived via status = 'cancelled' for audit traceability
+      allow delete: if false;
+    }
+
+    // 4. vault_documents/{docId}
+    match /vault_documents/{docId} {
+      allow read: if isAuthenticated() && (
+        resource.data.ownerUid == request.auth.uid ||
+        (('activeSharedUids' in resource.data)
+          && resource.data.activeSharedUids is list
+          && request.auth.uid in resource.data.activeSharedUids) ||
+        (hasRole('legal_reviewer')
+          && ('legalReviewerUid' in resource.data)
+          && resource.data.legalReviewerUid == request.auth.uid) ||
+        hasAnyRole(['compliance_officer', 'auditor'])
+      );
+
+      allow create: if hasVaultSecurityClaim()
+        && isValidVaultDocument(request.resource.data)
+        && request.resource.data.ownerUid == request.auth.uid
+        && isRecent(request.resource.data.createdAt)
+        && request.resource.data.status in ['pending_upload', 'uploaded', 'awaiting_human_review']
+        && (!('reviewedBy' in request.resource.data) || request.resource.data.reviewedBy == null);
+
+      allow update: if isAuthenticated()
+        && isValidVaultDocument(request.resource.data)
+        && areImmutableFieldsUnchanged(['ownerUid', 'createdAt'])
+        && (
+          (resource.data.ownerUid == request.auth.uid
+            && areImmutableFieldsUnchanged(['reviewedBy', 'reviewedAt', 'reviewNotes'])
+            && request.resource.data.version >= resource.data.version
+            && (request.resource.data.status == resource.data.status
+                || request.resource.data.status in [
+                  'pending_upload', 'uploaded', 'awaiting_human_review', 'revoked'
+                ]))
+          || ((hasRole('compliance_officer')
+                || (hasRole('legal_reviewer')
+                    && ('legalReviewerUid' in resource.data)
+                    && resource.data.legalReviewerUid == request.auth.uid))
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'status', 'reviewNotes', 'reviewedBy', 'reviewedAt', 'updatedAt'
+              ])
+              && request.resource.data.reviewedBy == request.auth.uid
+              && request.resource.data.status in [
+                'ai_screening', 'awaiting_human_review', 'approved', 'rejected', 'expired'
+              ])
+        );
+
+      // Auditable documents are never deleted directly; use status = 'revoked'
+      allow delete: if false;
+    }
+
+    // 5. audit_logs/{logId} (Append-only / Immutable)
+    match /audit_logs/{logId} {
+      allow read: if isAuthenticated() && (
+        (('actorUid' in resource.data) && resource.data.actorUid == request.auth.uid) ||
+        (('ownerUid' in resource.data) && resource.data.ownerUid == request.auth.uid) ||
+        hasAnyRole(['compliance_officer', 'auditor', 'admin'])
+      );
+
+      allow create: if isAuthenticated()
+        && isValidAuditLog(request.resource.data)
+        && request.resource.data.actorUid == request.auth.uid
+        && isRecent(request.resource.data.createdAt);
+
+      allow update, delete: if false;
+    }
+
+    // 6. crm_leads/{leadId}
+    match /crm_leads/{leadId} {
+      function isCrmStaff() {
+        return hasAnyRole(['advisor', 'ops_manager', 'legal_reviewer', 'compliance_officer', 'admin']);
+      }
+
+      allow read: if isCrmStaff() || (
+        isAuthenticated()
+        && ('userUid' in resource.data)
+        && resource.data.userUid == request.auth.uid
+      );
+
+      allow create: if isValidCrmLead(request.resource.data)
+        && (!('createdAt' in request.resource.data) || isRecent(request.resource.data.createdAt))
+        && (
+          isCrmStaff()
+          || (request.resource.data.stage == 'new_lead'
+              && (!('assignedAdvisor' in request.resource.data) || request.resource.data.assignedAdvisor == null)
+              && (!('userUid' in request.resource.data)
+                  || request.resource.data.userUid == null
+                  || (isAuthenticated() && request.resource.data.userUid == request.auth.uid)))
+        );
+
+      allow update: if isCrmStaff()
+        && isValidCrmLead(request.resource.data)
+        && areImmutableFieldsUnchanged(['createdAt']);
+
+      allow delete: if hasAnyRole(['admin', 'ops_manager']);
+    }
+
+    // 7. ai_conversations/{convId} and subcollection messages/{msgId}
+    match /ai_conversations/{convId} {
+      function isAiStaff() {
+        return hasAnyRole(['advisor', 'legal_reviewer', 'compliance_officer', 'admin']);
+      }
+
+      allow read: if isAuthenticated() && (
+        resource.data.userUid == request.auth.uid || isAiStaff()
+      );
+
+      allow create: if isAuthenticated()
+        && isValidAiConversation(request.resource.data)
+        && isRecent(request.resource.data.createdAt)
+        && (request.resource.data.userUid == request.auth.uid || isAiStaff());
+
+      allow update: if isAuthenticated()
+        && isValidAiConversation(request.resource.data)
+        && areImmutableFieldsUnchanged(['userUid', 'createdAt'])
+        && (resource.data.userUid == request.auth.uid || isAiStaff());
+
+      allow delete: if isAuthenticated() && (
+        resource.data.userUid == request.auth.uid || isAdmin()
+      );
+
+      match /messages/{msgId} {
+        allow read: if isAuthenticated() && (
+          isAiStaff() ||
+          (exists(/databases/$(database)/documents/ai_conversations/$(convId)) &&
+           get(/databases/$(database)/documents/ai_conversations/$(convId)).data.userUid == request.auth.uid)
+        );
+
+        allow create: if isAuthenticated()
+          && isValidAiMessage(request.resource.data)
+          && isRecent(request.resource.data.createdAt)
+          && (
+            isAiStaff() ||
+            (request.resource.data.sender in ['user', 'agent', 'system'] &&
+             existsAfter(/databases/$(database)/documents/ai_conversations/$(convId)) &&
+             getAfter(/databases/$(database)/documents/ai_conversations/$(convId)).data.userUid == request.auth.uid)
+          );
+
+        allow update: if isAuthenticated()
+          && isValidAiMessage(request.resource.data)
+          && areImmutableFieldsUnchanged(['sender', 'createdAt'])
+          && (
+            isAiStaff() ||
+            (exists(/databases/$(database)/documents/ai_conversations/$(convId)) &&
+             get(/databases/$(database)/documents/ai_conversations/$(convId)).data.userUid == request.auth.uid)
+          );
+
+        allow delete: if isAuthenticated() && (
+          isAdmin() ||
+          (exists(/databases/$(database)/documents/ai_conversations/$(convId)) &&
+           get(/databases/$(database)/documents/ai_conversations/$(convId)).data.userUid == request.auth.uid)
+        );
+      }
+    }
+
+    // 8. concierge_notifications/{notifId}
+    match /concierge_notifications/{notifId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userUid == request.auth.uid || isStaff()
+      );
+
+      allow create: if isAuthenticated()
+        && isValidConciergeNotification(request.resource.data)
+        && isRecent(request.resource.data.createdAt)
+        && (request.resource.data.userUid == request.auth.uid || isStaff());
+
+      allow update: if isAuthenticated()
+        && isValidConciergeNotification(request.resource.data)
+        && areImmutableFieldsUnchanged(['userUid', 'createdAt'])
+        && (
+          isStaff() ||
+          (resource.data.userUid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt'])
+            && request.resource.data.read == true)
+        );
+
+      allow delete: if false;
+    }
+
+    // 9. verified_payment_instructions/{instId} (Anti-BEC)
+    match /verified_payment_instructions/{instId} {
+      function isPaymentStaff() {
+        return hasAnyRole(['legal_reviewer', 'compliance_officer', 'admin']);
+      }
+
+      allow read: if isAuthenticated() && (
+        resource.data.clientUid == request.auth.uid || isPaymentStaff()
+      );
+
+      allow create: if isPaymentStaff()
+        && isValidPaymentInstruction(request.resource.data)
+        && isRecent(request.resource.data.createdAt);
+
+      allow update: if isPaymentStaff()
+        && isValidPaymentInstruction(request.resource.data)
+        && areImmutableFieldsUnchanged([
+          'clientUid', 'dealId', 'beneficiaryName', 'ibanLast4',
+          'ibanMasked', 'bicSwift', 'expectedAmountEur', 'createdAt'
+        ]);
+
+      allow delete: if false;
+    }
+
+    // 10. Default Deny Fallback
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

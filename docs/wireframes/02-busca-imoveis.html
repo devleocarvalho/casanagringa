@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>02 — Portal de Imóveis · CASA NA GRINGA</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wf-banner">
+    <b>WF-02 · Busca Curada de Imóveis + Mapa</b>
+    <a href="index.html">← Índice</a>
+    <span>Anterior: <a href="01-home.html">01 Home</a> · Próximo: <a href="03-detalhe-imovel.html">03 Detalhe</a></span>
+  </div>
+
+  <header class="topbar">
+    <div class="container flex between">
+      <a class="logo" href="01-home.html">Casa na <span>Gringa</span></a>
+      <nav class="nav">
+        <a class="active" href="02-busca-imoveis.html">Imóveis</a>
+        <a href="05-simulador-financeiro.html">Simuladores</a>
+        <a href="04-comparador-cidades.html">Comparar Cidades</a>
+        <a href="07-dashboard-cliente.html">Meu Painel</a>
+      </nav>
+      <a class="btn accent sm" href="06-onboarding-perfil.html">Calibrar Match IA</a>
+    </div>
+  </header>
+
+  <main class="section">
+    <div class="container">
+      <div class="card mb-3">
+        <div class="grid g5">
+          <div><label>País</label><select><option>Todos (PT + ES)</option><option>Portugal</option><option>Espanha</option></select></div>
+          <div><label>Cidade</label><select><option>Lisboa / Cascais</option><option>Porto</option><option>Madrid</option><option>Valência</option></select></div>
+          <div><label>Orçamento Máx.</label><input type="text" value="€ 550.000" /></div>
+          <div><label>Objetivo</label><select><option>Moradia + Renda</option><option>Investimento</option></select></div>
+          <div><label>Score DD Mínimo</label><select><option>85+ (Pré-auditado)</option><option>Todos</option></select></div>
+        </div>
+      </div>
+
+      <div class="grid g-side">
+        <div class="grid g2">
+          <article class="prop">
+            <div class="ph">Foto Apartamento T2<div class="tl"><span class="badge ok">DD 94/100</span><span class="badge gold">93% Match</span></div><div class="tr">♡</div></div>
+            <div class="body">
+              <div class="price">€ 420.000</div>
+              <h3 class="mt-0">T2 Luminoso em Campo de Ourique</h3>
+              <div class="meta"><span>Lisboa, PT</span><span>88 m²</span><span>2 quartos</span><span>Yield est. 4,6%</span></div>
+              <p class="small muted">Custo total est. c/ IMT + IS: <b>€ 451.800</b>. Certidão e licença verificadas previamente.</p>
+              <div class="foot"><span class="badge info">Co-corretagem AMI</span><a class="btn sm" href="03-detalhe-imovel.html">Ver Análise →</a></div>
+            </div>
+          </article>
+
+          <article class="prop">
+            <div class="ph">Foto Piso 3Hab<div class="tl"><span class="badge ok">DD 91/100</span><span class="badge gold">89% Match</span></div><div class="tr">♡</div></div>
+            <div class="body">
+              <div class="price">€ 485.000</div>
+              <h3 class="mt-0">Apartamento Reformado em Chamberí</h3>
+              <div class="meta"><span>Madrid, ES</span><span>96 m²</span><span>3 quartos</span><span>ITP 6%</span></div>
+              <p class="small muted">Custo total est. c/ ITP Madrid 6%: <b>€ 524.100</b>. Nota Simple pré-checada sem cargas.</p>
+              <div class="foot"><span class="badge info">Parceiro Madrid</span><a class="btn sm" href="03-detalhe-imovel.html">Ver Análise →</a></div>
+            </div>
+          </article>
+
+          <article class="prop">
+            <div class="ph">Foto T3 Porto<div class="tl"><span class="badge ok">DD 96/100</span><span class="badge gold">86% Match</span></div><div class="tr">♡</div></div>
+            <div class="body">
+              <div class="price">€ 365.000</div>
+              <h3 class="mt-0">T3 com Garagem na Boavista</h3>
+              <div class="meta"><span>Porto, PT</span><span>112 m²</span><span>3 quartos</span><span>Yield est. 5,1%</span></div>
+              <p class="small muted">Ideal para S2 com crédito habitação (entrada est. € 91k + custos).</p>
+              <div class="foot"><span class="badge info">Financiável 75%</span><a class="btn sm" href="03-detalhe-imovel.html">Ver Análise →</a></div>
+            </div>
+          </article>
+
+          <article class="prop">
+            <div class="ph">Foto Valência<div class="tl"><span class="badge warn">DD 78/100 (Pend. Ata)</span></div><div class="tr">♡</div></div>
+            <div class="body">
+              <div class="price">€ 310.000</div>
+              <h3 class="mt-0">Ático em Ruzafa com Terraço</h3>
+              <div class="meta"><span>Valência, ES</span><span>82 m²</span><span>2 quartos</span><span>ITP 9%</span></div>
+              <p class="small muted">Aguardando ata de obras futuras do condomínio antes de aprovação plena.</p>
+              <div class="foot"><span class="badge warn">Em Verificação</span><a class="btn sm" href="03-detalhe-imovel.html">Ver Riscos →</a></div>
+            </div>
+          </article>
+        </div>
+
+        <aside class="card pad0">
+          <div class="ph map">
+            MAPA INTERATIVO PT / ES
+            <span class="pin ok" style="top:38%;left:22%;">€ 420k · DD 94</span>
+            <span class="pin hot" style="top:24%;left:26%;">€ 365k · DD 96</span>
+            <span class="pin" style="top:42%;left:62%;">€ 485k · Madrid</span>
+            <span class="pin" style="top:54%;left:74%;">€ 310k · Valência</span>
+          </div>
+          <div style="padding:16px;">
+            <div class="alert info"><div>ℹ️</div><div class="small"><b>Sem anúncios duplicados:</b> nossa curadoria unifica listagens de múltiplas agências por código predial/catastral.</div></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

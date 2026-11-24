@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12 — Auditoria & Segurança Zero Trust · CASA NA GRINGA</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wf-banner"><b>WF-12 · Painel de Auditoria Imutável, SIEM & LGPD/GDPR</b><a href="index.html">← Índice</a></div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">Casa na <span>Gringa</span></div>
+      <a href="07-dashboard-cliente.html">Painel Cliente</a>
+      <a href="10-crm-lista-leads.html">CRM Pipeline</a>
+      <a class="active" href="12-painel-auditoria-seguranca.html">Auditoria & Zero Trust</a>
+    </aside>
+    <main class="main">
+      <div class="page-head">
+        <div>
+          <span class="badge ok">✓ Cadeia Hash SHA-256 Íntegra · Último Lote WORM Selado há 12 min</span>
+          <h1 class="mt-1">Centro de Segurança, Auditoria e Privacidade</h1>
+        </div>
+        <button class="btn trust">🔍 Verificar Integridade da Cadeia</button>
+      </div>
+
+      <div class="grid g4 mb-3">
+        <div class="kpi"><div class="l">Status Hash-Chain</div><div class="v" style="color:var(--c-trust);">100% OK</div><div class="d">4.812 eventos encadeados</div></div>
+        <div class="kpi"><div class="l">Cobertura MFA</div><div class="v">100%</div><div class="d">TOTP / Passkey obrigatório</div></div>
+        <div class="kpi"><div class="l">Alertas Anti-BEC</div><div class="v">1 Bloqueado</div><div class="d">Tentativa alteração IBAN contida</div></div>
+        <div class="kpi"><div class="l">Pedidos DSR (LGPD)</div><div class="v">0 Abertos</div><div class="d">SLA médio 1,8 dias</div></div>
+      </div>
+
+      <div class="card mb-3">
+        <h3>Trilha de Auditoria Imutável (Append-Only)</h3>
+        <table>
+          <thead><tr><th>Seq</th><th>Timestamp</th><th>Ator (Papel)</th><th>Ação</th><th>Recurso</th><th>Entry Hash (SHA-256)</th></tr></thead>
+          <tbody>
+            <tr><td>#4812</td><td>2027-02-24 14:22:09Z</td><td>tiago@adv.pt (<code>legal_reviewer</code>)</td><td><code>VAULT_DOC_VIEW</code></td><td>doc_passport_v2</td><td><code>8f3a9c12...91c2</code></td></tr>
+            <tr><td>#4811</td><td>2027-02-24 11:04:15Z</td><td>ai_orchestrator (<code>system</code>)</td><td><code>HITL_ESCALATION_CREATED</code></td><td>hitl_892</td><td><code>7e2b4401...10aa</code></td></tr>
+            <tr><td>#4810</td><td>2027-02-23 18:10:02Z</td><td>marcelo@silva.br (<code>client</code>)</td><td><code>CONSENT_SHARE_GRANTED</code></td><td>partner_adv_04</td><td><code>4b7e11f9...20d9</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

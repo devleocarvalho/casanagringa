@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>09 — Chat Multiagente IA · CASA NA GRINGA</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wf-banner"><b>WF-09 · Sistema Multiagente Gemini (8 Especialistas + RAG + HITL)</b><a href="index.html">← Índice</a></div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">Casa na <span>Gringa</span></div>
+      <div class="grp">Especialistas IA</div>
+      <a class="active" href="#">🎯 Orquestrador (Auto)</a>
+      <a href="#">🏠 Agente Imobiliário</a>
+      <a href="#">💶 Agente Financeiro</a>
+      <a href="#">⚖️ Agente Jurídico (RAG)</a>
+      <a href="#">🧾 Agente Tributário</a>
+      <a href="#">✈️ Relocation</a>
+      <a href="#">🔔 Concierge Internacional</a>
+      <a href="#">🛡️ Compliance & DD</a>
+      <div class="grp">Navegação</div>
+      <a href="07-dashboard-cliente.html">← Voltar ao Painel</a>
+    </aside>
+    <main class="main">
+      <div class="page-head">
+        <div>
+          <span class="badge warn">🤖 Assistente de IA · Citações Verificadas · EU AI Act</span>
+          <h1 class="mt-1">Central de Especialistas IA + Escalonamento Humano</h1>
+        </div>
+        <button class="btn trust">👤 Falar com Especialista Humano Agora</button>
+      </div>
+
+      <div class="disclaimer mb-3">
+        <b>Limites Obrigatórios:</b> Nossos agentes de IA operam sobre base legal curada por país e têm caráter exclusivamente informativo. <b>Nunca fornecem aconselhamento jurídico, financeiro ou tributário definitivo</b> nem confirmam ou alteram dados bancários (IBAN). Decisões contratuais e fiscais exigem validação humana.
+      </div>
+
+      <div class="card">
+        <div class="chat">
+          <div class="msg user">
+            <div class="who">Marcelo (Você)</div>
+            Vou comprar um apartamento usado em Madrid por € 485.000. Quanto pago de ITP e posso mandar o sinal hoje para um IBAN novo que recebi por e-mail?
+          </div>
+          <div class="msg ai">
+            <div class="who">⚖️ Agente Jurídico + 🛡️ Compliance (Roteado pelo Orquestrador)</div>
+            <p><b>1. Alerta Crítico de Segurança (Anti-BEC):</b> <b>NÃO transfira nenhum valor</b> para IBAN recebido por e-mail. Toda instrução bancária legítima na Casa na Gringa passa por dupla assinatura e aparece exclusivamente no seu <b>Cofre Verificado</b> após confirmação em vídeo.</p>
+            <p><b>2. Estimativa Informativa de ITP em Madrid:</b> Em regra geral na Comunidade de Madrid, a alíquota geral do ITP para imóvel de segunda mão é de <b>6%</b> (o que seria ~€ 29.100 sobre € 485.000), incidindo sobre o maior valor entre o preço de escritura e o <i>Valor de Referencia Catastral</i> (com possíveis bonificações específicas a verificar).</p>
+            <div class="src">
+              <b>Fontes do Country Pack ES (a confirmar com advogado local):</b> Portal de Tributos Comunidad de Madrid (ITP general 6% — vigência verificada em 2026) · Norma interna Anti-BEC v1.4.<br/>
+              <span class="badge danger mt-1">⚠️ Escalonamento HITL aberto automaticamente no CRM (#HITL-892) para o advogado revisar sua solicitação de sinal.</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex mt-3">
+          <input type="text" placeholder="Pergunte sobre NIF, NIE, IMT, ITP, financiamento, bairros ou documentos..." />
+          <button class="btn accent">Enviar</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>05 — Simulador Financeiro PT & ES · CASA NA GRINGA</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wf-banner"><b>WF-05 · Simulador de Custos Totais + Financiamento Não-Residente</b><a href="index.html">← Índice</a></div>
+  <header class="topbar"><div class="container flex between"><a class="logo" href="01-home.html">Casa na <span>Gringa</span></a><a class="btn ghost sm" href="07-dashboard-cliente.html">Ir para meu Painel</a></div></header>
+  <main class="section">
+    <div class="container">
+      <span class="eyebrow">Fase 1–2 · Planejamento Transparente</span>
+      <h1>Simulador de Custo Total de Aquisição & Hipoteca</h1>
+      <div class="grid g2 mt-3">
+        <div class="card">
+          <h3>Parâmetros do Imóvel</h3>
+          <div class="field"><label>País & Região</label><select><option>Espanha — Madrid (ITP 6%)</option><option>Portugal — Continente (Secundária)</option><option>Espanha — Andaluzia (ITP 7%)</option><option>Espanha — Catalunha (ITP 10%+)</option></select></div>
+          <div class="form-row">
+            <div class="field"><label>Preço do Imóvel (€)</label><input type="number" value="400000" /></div>
+            <div class="field"><label>Condição</label><select><option>Usado (Segunda Mão)</option><option>Novo (Obra Nova)</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label>Financiamento (% LTV)</label><input type="number" value="70" /></div>
+            <div class="field"><label>Prazo / Juros Est.</label><input type="text" value="25 anos · 3,6% a.a." /></div>
+          </div>
+          <div class="field"><label>Câmbio EUR → BRL</label><input type="number" value="6.30" /></div>
+          <button class="btn accent block">Recalcular e Salvar no Meu Plano</button>
+        </div>
+
+        <div class="card">
+          <h3>Resultado Estimado (Madrid · € 400.000)</h3>
+          <div class="grid g2 mb-2">
+            <div class="kpi"><div class="l">Capital Próprio Necessário</div><div class="v">€ 154.800</div><div class="d">30% entrada + impostos/custos</div></div>
+            <div class="kpi"><div class="l">Prestação Mensal Est.</div><div class="v">€ 1.417</div><div class="d">~R$ 8.927/mês (financiando € 280k)</div></div>
+          </div>
+          <table>
+            <tbody>
+              <tr><td>ITP Madrid (6%)</td><td class="num">€ 24.000</td></tr>
+              <tr><td>Notaría + Registro + Gestoría</td><td class="num">€ 2.600</td></tr>
+              <tr><td>Advogado + Due Diligence + Traduções</td><td class="num">€ 4.200</td></tr>
+              <tr><td>Avaliação bancária + Abertura crédito</td><td class="num">€ 4.000</td></tr>
+            </tbody>
+            <tfoot><tr><td>Custo Total da Operação</td><td class="num">€ 434.800 (R$ 2,74M)</td></tr></tfoot>
+          </table>
+          <div class="alert warn mt-2"><div>⚠️</div><div class="small">Valores meramente estimativos para planejamento. Confirme base catastral e taxas vigentes com advogado/contador local.</div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>08 — Cofre Documental Auditável · CASA NA GRINGA</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wf-banner"><b>WF-08 · Cofre Documental (Versões, Compartilhamento Granular & Trilha SHA-256)</b><a href="index.html">← Índice</a></div>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">Casa na <span>Gringa</span></div>
+      <a href="07-dashboard-cliente.html">← Voltar ao Painel</a>
+      <a class="active" href="08-cofre-documentos.html">Cofre Documental</a>
+      <a href="12-painel-auditoria-seguranca.html">Log Imutável Completo</a>
+    </aside>
+    <main class="main">
+      <div class="page-head">
+        <div>
+          <span class="badge ok">🔒 AES-256 CMEK (UE) · MFA Verificado</span>
+          <h1 class="mt-1">Cofre Documental — Portugal (NIF & KYC)</h1>
+        </div>
+        <button class="btn accent">+ Enviar Novo Documento</button>
+      </div>
+
+      <div class="alert danger mb-3">
+        <div>🛡️</div>
+        <div class="small"><b>Segurança Anti-BEC:</b> Instruções de pagamento (IBAN) aparecem apenas no módulo de Pagamento Verificado abaixo, com dupla assinatura. Nunca confie em IBAN recebido por e-mail ou WhatsApp.</div>
+      </div>
+
+      <div class="card mb-3">
+        <h3>Checklist Obrigatório do Processo</h3>
+        <table>
+          <thead><tr><th>Documento</th><th>Versão</th><th>Status</th><th>Compartilhado com</th><th>Ações</th></tr></thead>
+          <tbody>
+            <tr><td><b>Passaporte Válido</b></td><td>v2</td><td><span class="badge ok">Aprovado (Advogado)</span></td><td>Dr. Tiago Mendes (expira 20/03)</td><td><button class="btn sm light">Histórico (4)</button> <button class="btn sm danger">Revogar</button></td></tr>
+            <tr><td><b>Comprovante NIF Português</b></td><td>v1</td><td><span class="badge ok">Aprovado</span></td><td>Somente você</td><td><button class="btn sm light">Compartilhar</button></td></tr>
+            <tr><td><b>IRPF + Origem de Fundos</b></td><td>v1</td><td><span class="badge warn">Aguardando Revisão AML</span></td><td>Compliance Officer</td><td><button class="btn sm light">Nova Versão</button></td></tr>
+            <tr><td><b>Procuração Pública (Apostila Haia)</b></td><td>—</td><td><span class="badge danger">Pendente Upload</span></td><td>—</td><td><button class="btn sm accent">Upload</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Histórico Auditável de Acessos, Edições, Downloads e Compartilhamentos</h3>
+        <table>
+          <thead><tr><th>Data/Hora (UTC)</th><th>Ator</th><th>Ação</th><th>Documento</th><th>Hash SHA-256 (Cadeia)</th></tr></thead>
+          <tbody>
+            <tr><td>2027-02-24 14:22</td><td>Dr. Tiago Mendes (Adv.)</td><td><span class="badge info">VIEW (Watermark)</span></td><td>Passaporte v2</td><td><code>8f3a...91c2</code></td></tr>
+            <tr><td>2027-02-23 18:10</td><td>Marcelo (Titular)</td><td><span class="badge gold">SHARE_GRANTED (7d)</span></td><td>Passaporte v2</td><td><code>4b7e...20d9</code></td></tr>
+            <tr><td>2027-02-23 18:05</td><td>Document AI + Antimalware</td><td><span class="badge ok">AI_EXTRACTED (Clean)</span></td><td>Passaporte v2</td><td><code>1a9c...77f0</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
